@@ -1,2 +1,5 @@
+1.1
+- Now required shift to be held down when interacting with a mailbox to send the mail automatically. Implemented to separate this addon from doing it's thing when you just want to open the mailbox.
+
 1.0
 - Initial release
