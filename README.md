@@ -1,0 +1,2 @@
+# AutoMailer
+Sends mail automatically
