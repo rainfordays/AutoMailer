@@ -1,0 +1,10 @@
+## Interface: 11304
+## Title: AutoMailer
+## Author: RainForDays
+## Notes: Automatically Mail Items
+## Version: 1.0
+## DefaultState: enabled
+## SavedVariablesPerCharacter: AutoMailer
+
+AutoMailer.lua
+OptionsPanel.lua
