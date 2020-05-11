@@ -1,0 +1,8 @@
+2.0
+- Changed item recognition from itemlink to itemname, itemlinks contain ilvl so the same item has different item links depending on the mob that dropped it.
+
+1.1
+-Update
+
+1.0
+- Initial release
