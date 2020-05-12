@@ -5,8 +5,8 @@ function A:Print(...)
 end
 
 
-A.slashPrefix = "|cff91f58e/automailer|r "
-A.addonName = "|cff91f58eAutoMailer|r "
+A.slashPrefix = "|cff8d63ff/automailer|r "
+A.addonName = "|cff8d63ffAutoMailer|r "
 
 
 --[[
