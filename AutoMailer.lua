@@ -67,17 +67,30 @@ function E:MAIL_SHOW()
       for slot = 1, GetContainerNumSlots(bag) do
         local _, _, _, _, _, _, itemLink, _, _, itemID = GetContainerItemInfo(bag, slot)
         if itemID then
-          if not C_Item.IsBound(ItemLocation:CreateFromBagAndSlot(bag, slot)) then
-            local itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemIcon, itemSellPrice, itemClassID, itemSubClassID, bindType  = GetItemInfo(itemID)
-  
-            if string.find(AutoMailer.items:lower(), itemName:lower()) -- item is in text list
-            or (AutoMailer.SendBOE and (AutoMailer.LimitBoeLevel and itemMinLevel < UnitLevel("PLAYER")) and bindType == 2) -- item is BoE, BoE is checked AND limit the level of boes
-            or (AutoMailer.SendBOE and not AutoMailer.LimitBoeLevel and bindType == 2) then -- item is BoE and limit BoE is not checked
+          if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
+            local itemInfo = { GetItemInfo(itemID) }
+            local itemName = itemInfo
+            local bindType = select(14, itemInfo)
+            local itemMinLevel = select(5, itemInfo)
+
+            local sendItem = false
+
+            if A:ItemInAutomailList(itemName) then -- item is in text list
+              sendItem = true
+            elseif A:AutomailBoe(bindType) then -- Mail BoEs and item is BoE
+              if AutoMailer.LimitBoeLevel and itemMinLevel < UnitLevel("PLAYER") then -- Limit BoE required level to be below player level
+                sendItem = true
+              elseif not AutoMailer.LimitBoeLevel then
+                sendItem = true
+              end
+            end
+
+            if sendItem then -- we should send this item
               SetSendMailShowing(true)
               UseContainerItem(bag, slot)
               itemsInMail = itemsInMail + 1
-  
-              if itemsInMail == ATTACHMENTS_MAX_SEND then
+
+              if itemsInMail == ATTACHMENTS_MAX_SEND then -- If there are max attached items then send the mail before proceeding
                 local subject = A:GetMailSubject()
                 SendMail(recipient, subject, "")
                 sentMail = true
@@ -102,6 +115,18 @@ end
 function A:GetMailSubject()
   local name, _, _, count = GetSendMailItem(1)
   return name.." ("..count..")"
+end
+
+function A:ItemInAutomailList(itemName)
+  return string.find(AutoMailer.items:lower(), itemName:lower())
+end
+
+function A:AutomailBoe(bindType)
+  return AutoMailer.SendBOE and bindType == 2
+end
+
+function A:ContainerItemIsSoulbound(bag, slot)
+  return C_Item.IsBound(ItemLocation:CreateFromBagAndSlot(bag, slot))
 end
 
 --[[
