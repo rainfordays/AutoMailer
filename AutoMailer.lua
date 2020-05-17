@@ -65,14 +65,13 @@ function E:MAIL_SHOW()
 
     for bag = 0, NUM_BAG_SLOTS do
       for slot = 1, GetContainerNumSlots(bag) do
-        local _, _, _, _, _, _, itemLink, _, _, itemID = GetContainerItemInfo(bag, slot)
+        local itemID = select(10, GetContainerItemInfo(bag, slot))
         if itemID then
           if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
             local itemInfo = { GetItemInfo(itemID) }
             local itemName = itemInfo
             local bindType = select(14, itemInfo)
             local itemMinLevel = select(5, itemInfo)
-
             local sendItem = false
 
             if A:ItemInAutomailList(itemName) then -- item is in text list
