@@ -67,20 +67,22 @@ function E:MAIL_SHOW()
       for slot = 1, GetContainerNumSlots(bag) do
         local _, _, _, _, _, _, itemLink, _, _, itemID = GetContainerItemInfo(bag, slot)
         if itemID then
-          local itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemIcon, itemSellPrice, itemClassID, itemSubClassID, bindType  = GetItemInfo(itemID)
-
-          if string.find(AutoMailer.items:lower(), itemName:lower()) -- item is in text list
-          or (AutoMailer.SendBOE and (AutoMailer.LimitBoeLevel and itemMinLevel < UnitLevel("PLAYER")) and bindType == 2) -- item is BoE, BoE is checked AND limit the level of boes
-          or (AutoMailer.SendBOE and not AutoMailer.LimitBoeLevel and bindType == 2) then -- item is BoE and limit BoE is not checked
-            SetSendMailShowing(true)
-            UseContainerItem(bag, slot)
-            itemsInMail = itemsInMail + 1
-
-            if itemsInMail == ATTACHMENTS_MAX_SEND then
-              local subject = A:GetMailSubject()
-              SendMail(recipient, subject, "")
-              sentMail = true
-              itemsInMail = 0
+          if not C_Item.IsBound(ItemLocation:CreateFromBagAndSlot(bag, slot)) then
+            local itemName, itemLink, itemRarity, itemLevel, itemMinLevel, itemType, itemSubType, itemStackCount, itemEquipLoc, itemIcon, itemSellPrice, itemClassID, itemSubClassID, bindType  = GetItemInfo(itemID)
+  
+            if string.find(AutoMailer.items:lower(), itemName:lower()) -- item is in text list
+            or (AutoMailer.SendBOE and (AutoMailer.LimitBoeLevel and itemMinLevel < UnitLevel("PLAYER")) and bindType == 2) -- item is BoE, BoE is checked AND limit the level of boes
+            or (AutoMailer.SendBOE and not AutoMailer.LimitBoeLevel and bindType == 2) then -- item is BoE and limit BoE is not checked
+              SetSendMailShowing(true)
+              UseContainerItem(bag, slot)
+              itemsInMail = itemsInMail + 1
+  
+              if itemsInMail == ATTACHMENTS_MAX_SEND then
+                local subject = A:GetMailSubject()
+                SendMail(recipient, subject, "")
+                sentMail = true
+                itemsInMail = 0
+              end
             end
           end
         end -- ITEMLINK
