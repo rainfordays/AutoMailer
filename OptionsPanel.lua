@@ -84,6 +84,34 @@ function A:CreateOptionsMenu()
   optionsPanel.items = items
 
 
+  local BOECB = CreateFrame("CheckButton", "AMBOECB", optionsPanel, "ChatConfigCheckButtonTemplate")
+  BOECB:SetChecked(AutoMailer.SendBOE or false)
+  BOECB:SetPoint("TOPLEFT", itemsBG, "BOTTOMLEFT", 0, -5)
+  BOECB:SetScript("OnClick", function(self)
+    AutoMailer.SendBOE = self:GetChecked()
+  end)
+  AutoMailer.SendBOE = BOECB:GetChecked() -- INIT OPTION TO SAVED VARIABLES
+
+  local BOETEXT = BOECB:CreateFontString(nil, "OVERLAY")
+  BOETEXT:SetPoint("LEFT", BOECB, "RIGHT", 5, 0)
+  BOETEXT:SetFontObject("GameFontNormal")
+  BOETEXT:SetText("Automatically send BoEs")
+
+  local BOELEVELLIMIT = CreateFrame("CheckButton", "AMBOELVLLIMITCB", optionsPanel, "ChatConfigCheckButtonTemplate")
+  BOELEVELLIMIT:SetChecked(AutoMailer.LimitBoeLevel or true)
+  BOELEVELLIMIT:SetPoint("TOPLEFT", BOECB, "BOTTOMLEFT", 5, 0)
+  BOELEVELLIMIT:SetScript("OnClick", function(self)
+    AutoMailer.LimitBoeLevel = self:GetChecked()
+  end)
+  AutoMailer.LimitBoeLevel = BOELEVELLIMIT:GetChecked() -- INIT OPTION TO SAVED VARIABLES
+
+  local BOELIMITTEXT = BOELEVELLIMIT:CreateFontString(nil, "OVERLAY")
+  BOELIMITTEXT:SetPoint("LEFT", BOELEVELLIMIT, "RIGHT", 5, 0)
+  BOELIMITTEXT:SetFontObject("GameFontNormal")
+  BOELIMITTEXT:SetText("Only send BoEs that require a level lower than yours")
+
+
+
 
   A.optionsPanel = optionsPanel
 end
