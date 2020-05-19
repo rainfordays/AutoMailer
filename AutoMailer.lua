@@ -7,7 +7,7 @@ end
 
 A.slashPrefix = "|cff8d63ff/automailer|r "
 A.addonName = "|cff8d63ffAutoMailer|r "
-
+A.sentMail = false
 
 --[[
     ---- EVENT FRAME ----
@@ -15,6 +15,7 @@ A.addonName = "|cff8d63ffAutoMailer|r "
 local E = CreateFrame("Frame")
 E:RegisterEvent("ADDON_LOADED")
 E:RegisterEvent("MAIL_SHOW")
+E:RegisterEvent("MAIL_SEND_SUCCESS")
 E:RegisterEvent("PLAYER_ENTERING_WORLD")
 E:SetScript("OnEvent", function(self, event, ...)
   return self[event] and self[event](self, ...)
@@ -53,10 +54,27 @@ end
 
 
 --[[
-    -- BAG UPDATE --
+    -- MAILING --
 ]]
 function E:MAIL_SHOW()
-  if not IsShiftKeyDown() then return end
+  if IsShiftKeyDown() then A.sendingMail = true end
+
+  if A.sendingMail then
+    A:SendMail()
+  end
+end
+
+function E:MAIL_SEND_SUCCESS()
+  if A.sendingMail then
+    A:SendMail()
+  end
+end
+
+
+
+
+function A:SendMail()
+  if not A.sendingMail then return end
   if AutoMailer.recipient ~= "" and AutoMailer.items ~= "" then
 
     local itemsInMail = 0
@@ -91,8 +109,8 @@ function E:MAIL_SHOW()
               if itemsInMail == 12 then -- If there are max attached items then send the mail before proceeding
                 local subject = A:GetMailSubject()
                 SendMail(recipient, subject, "")
-                sentMail = true
-                itemsInMail = 0
+                A.sentMail = true
+                return
               end -- 12 ITEMS IN MAIL
             end -- IF SENDITEM
           end -- NOT SOULBOUND
@@ -102,12 +120,13 @@ function E:MAIL_SHOW()
     if GetSendMailItem(1) then
       local subject = A:GetMailSubject()
       SendMail(recipient, subject, "")
-      sentMail = true
+      A.sentMail = true
     end
-    if sentMail then
+    if A.sentMail then
       A:Print("Successfully sent mail to "..recipient)
     end
   end
+  A.sendingMail = false
 end
 
 function A:GetMailSubject()
