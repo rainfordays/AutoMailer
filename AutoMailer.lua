@@ -68,10 +68,9 @@ function E:MAIL_SHOW()
         local itemID = select(10, GetContainerItemInfo(bag, slot))
         if itemID then
           if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
-            local itemInfo = { GetItemInfo(itemID) }
-            local itemName = itemInfo
-            local bindType = select(14, itemInfo)
-            local itemMinLevel = select(5, itemInfo)
+            local itemName = select(1, GetItemInfo(itemID))
+            local bindType = select(14, GetItemInfo(itemID))
+            local itemMinLevel = select(5, GetItemInfo(itemID))
             local sendItem = false
 
             if A:ItemInAutomailList(itemName) then -- item is in text list
@@ -89,14 +88,14 @@ function E:MAIL_SHOW()
               UseContainerItem(bag, slot)
               itemsInMail = itemsInMail + 1
 
-              if itemsInMail == ATTACHMENTS_MAX_SEND then -- If there are max attached items then send the mail before proceeding
+              if itemsInMail == 12 then -- If there are max attached items then send the mail before proceeding
                 local subject = A:GetMailSubject()
                 SendMail(recipient, subject, "")
                 sentMail = true
                 itemsInMail = 0
-              end
-            end
-          end
+              end -- 12 ITEMS IN MAIL
+            end -- IF SENDITEM
+          end -- NOT SOULBOUND
         end -- ITEMLINK
       end -- SLOTS
     end -- BAGS
