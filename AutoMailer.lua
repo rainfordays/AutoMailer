@@ -94,9 +94,11 @@ function A:SendMail()
             if A:ItemInAutomailList(itemName) then -- item is in text list
               sendItem = true
             elseif A:AutomailBoe(bindType) then -- Mail BoEs and item is BoE
-              if AutoMailer.LimitBoeLevel and itemMinLevel < UnitLevel("PLAYER") then -- Limit BoE required level to be below player level
-                sendItem = true
-              elseif not AutoMailer.LimitBoeLevel then
+              if AutoMailer.LimitBoeLevel then -- Limit BoE required level to be below player level
+                if itemMinLevel < UnitLevel("PLAYER") then -- Check required level
+                  sendItem = true
+                end
+              else -- Not limiting BoE levels so send all BoEs
                 sendItem = true
               end
             end
