@@ -57,7 +57,15 @@ end
     -- MAILING --
 ]]
 function E:MAIL_SHOW()
-  if IsShiftKeyDown() then A.sendingMail = true end
+  if IsShiftKeyDown() then 
+    A.sentMail = false
+    A.sendingMail = true
+    C_Timer.After(0.3, function()
+      if not IsBagOpen(0) then
+        ToggleAllBags()
+      end
+    end)
+  end
 
   if A.sendingMail then
     A:SendMail()
