@@ -30,7 +30,7 @@ function E:ADDON_LOADED(name)
   AutoMailer = AutoMailer or {}
   AutoMailer.items = AutoMailer.items or ""
   AutoMailer.recipient = AutoMailer.recipient or ""
-  AutoMailer.loginMessage = AutoMailer.loginMessage or true
+  AutoMailer.loginMessage = AutoMailer.loginMessage ~= nil and AutoMailer.loginMessage or true
 
   SLASH_AUTOMAILER1= "/automailer"
   SLASH_AUTOMAILER2= "/am"
@@ -49,7 +49,7 @@ end
 ]]
 function E:PLAYER_ENTERING_WORLD(login, reloadUI)
   if (login or reloadUI) and AutoMailer.loginMessage and A.loaded then
-    print(A.addonName .. "loaded.")
+    print(A.addonName .. "loaded")
   end
 end
 
