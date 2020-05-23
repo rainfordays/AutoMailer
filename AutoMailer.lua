@@ -33,6 +33,7 @@ function E:ADDON_LOADED(name)
 
 
   SLASH_AUTOMAILER1= "/automailer"
+  SLASH_AUTOMAILER2= "/am"
   SlashCmdList.AUTOMAILER = function(msg)
     A:SlashCommand(msg)
   end
@@ -47,7 +48,7 @@ end
 ]]
 function E:PLAYER_ENTERING_WORLD(login, reloadUI)
   if login or reloadUI then
-    print(A.addonName .. "loaded. "..A.slashPrefix.."for settings.")
+    --print(A.addonName .. "loaded. "..A.slashPrefix.."for settings.")
   end
 end
 
