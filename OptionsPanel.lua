@@ -13,8 +13,24 @@ function A:CreateOptionsMenu()
 
   local recipientHeader = optionsPanel:CreateFontString(nil, "OVERLAY")
   recipientHeader:SetFontObject("GameFontNormal")
-  recipientHeader:SetText("Recipient (current: "..AutoMailer.recipient..")")
+  recipientHeader:SetText("Recipient")
   recipientHeader:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -15)
+
+
+  local loginMessage = CreateFrame("CheckButton", nil, optionsPanel, "UICheckButtonTemplate")
+  loginMessage:SetSize(25,25)
+  loginMessage:SetPoint("BOTTOMLEFT", optionsPanel, "BOTTOMLEFT", 10, 3)
+  loginMessage:SetScript("OnClick", function(self, button)
+    AutoMailer.loginMessage = self:GetChecked()
+  end)
+  loginMessage:SetChecked(AutoMailer.loginMessage)
+  optionsPanel.loginMessage = loginMessage
+
+  local loginMessageText = loginMessage:CreateFontString(nil, "OVERLAY")
+  loginMessageText:SetFontObject("GameFontNormal")
+  loginMessageText:SetPoint("LEFT", loginMessage, "RIGHT", 3, 0)
+  loginMessageText:SetText("Display login message")
+  optionsPanel.loginMessageText = loginMessageText
 
 
   local recipientBox = CreateFrame("EditBox", "recipientBox", optionsPanel, "InputBoxTemplate")
@@ -22,15 +38,15 @@ function A:CreateOptionsMenu()
   recipientBox:SetSize(200, 30)
   recipientBox:SetFontObject("ChatFontNormal")
   recipientBox:SetMultiLine(false)
+  recipientBox:SetText(AutoMailer.recipient)
+  recipientBox:SetCursorPosition(0)
   recipientBox:SetAutoFocus(false)
   recipientBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
   recipientBox:SetScript("OnKeyUp", function(self)
     AutoMailer.recipient = self:GetText()
-    recipientHeader:SetText("Recipient (current: "..AutoMailer.recipient..")")
   end)
   recipientBox:SetScript("OnEnterPressed", function(self)
     AutoMailer.recipient = self:GetText()
-    recipientHeader:SetText("Recipient (current: "..AutoMailer.recipient..")")
     self:ClearFocus()
   end)
   
@@ -86,7 +102,7 @@ function A:CreateOptionsMenu()
 
   local BOECB = CreateFrame("CheckButton", "AMBOECB", optionsPanel, "ChatConfigCheckButtonTemplate")
   BOECB:SetChecked(AutoMailer.SendBOE or false)
-  BOECB:SetPoint("TOPLEFT", itemsBG, "BOTTOMLEFT", 0, -5)
+  BOECB:SetPoint("TOPLEFT", itemsBG, "TOPRIGHT", 30, 0)
   BOECB:SetScript("OnClick", function(self)
     AutoMailer.SendBOE = self:GetChecked()
   end)
@@ -108,7 +124,7 @@ function A:CreateOptionsMenu()
   local BOELIMITTEXT = BOELEVELLIMIT:CreateFontString(nil, "OVERLAY")
   BOELIMITTEXT:SetPoint("LEFT", BOELEVELLIMIT, "RIGHT", 5, 0)
   BOELIMITTEXT:SetFontObject("GameFontNormal")
-  BOELIMITTEXT:SetText("Only send BoEs that require a level lower than yours")
+  BOELIMITTEXT:SetText("Only BoEs with required level lower than yours")
 
 
 

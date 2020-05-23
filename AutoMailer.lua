@@ -27,10 +27,10 @@ end)
 ]]
 function E:ADDON_LOADED(name)
   if name ~= "AutoMailer" then return end
-  if not AutoMailer then AutoMailer = {} end
-  if not AutoMailer.items then AutoMailer.items = "" end
-  if not AutoMailer.recipient then AutoMailer.recipient = "" end
-
+  AutoMailer = AutoMailer or {}
+  AutoMailer.items = AutoMailer.items or ""
+  AutoMailer.recipient = AutoMailer.recipient or ""
+  AutoMailer.loginMessage = AutoMailer.loginMessage or true
 
   SLASH_AUTOMAILER1= "/automailer"
   SLASH_AUTOMAILER2= "/am"
@@ -39,6 +39,7 @@ function E:ADDON_LOADED(name)
   end
   
   A:CreateOptionsMenu()
+  A.loaded = true
 end
 
 
@@ -47,8 +48,8 @@ end
     -- PLAYER ENTERING WORLD --
 ]]
 function E:PLAYER_ENTERING_WORLD(login, reloadUI)
-  if login or reloadUI then
-    --print(A.addonName .. "loaded. "..A.slashPrefix.."for settings.")
+  if (login or reloadUI) and AutoMailer.loginMessage and A.loaded then
+    print(A.addonName .. "loaded.")
   end
 end
 
