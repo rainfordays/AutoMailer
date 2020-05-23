@@ -30,7 +30,7 @@ function E:ADDON_LOADED(name)
   AutoMailer = AutoMailer or {}
   AutoMailer.items = AutoMailer.items or ""
   AutoMailer.recipient = AutoMailer.recipient or ""
-  AutoMailer.loginMessage = AutoMailer.loginMessage ~= nil and AutoMailer.loginMessage or true
+  AutoMailer.loginMessage = AutoMailer.loginMessage or false
 
   SLASH_AUTOMAILER1= "/automailer"
   SLASH_AUTOMAILER2= "/am"
