@@ -30,7 +30,8 @@ function E:ADDON_LOADED(name)
   AutoMailer = AutoMailer or {}
   AutoMailer.items = AutoMailer.items or ""
   AutoMailer.recipient = AutoMailer.recipient or ""
-  AutoMailer.loginMessage = AutoMailer.loginMessage or false
+
+  if AutoMailer.loginMessage == nil then AutoMailer.loginMessage = true end
 
   SLASH_AUTOMAILER1= "/automailer"
   SLASH_AUTOMAILER2= "/am"
@@ -55,35 +56,7 @@ end
 
 
 
---[[
-    -- MAILING --
-]]
-function E:MAIL_SHOW()
-  if IsShiftKeyDown() then 
-    A.sentMail = false
-    A.sendingMail = true
-    C_Timer.After(0.3, function()
-      if not IsBagOpen(0) then
-        ToggleAllBags()
-      end
-    end)
-  end
-
-  if A.sendingMail then
-    A:SendMail()
-  end
-end
-
-function E:MAIL_SEND_SUCCESS()
-  if A.sendingMail then
-    A:SendMail()
-  end
-end
-
-
-
-
-function A:SendMail()
+local function AutoMailerSendMail()
   if not A.sendingMail then return end
   if AutoMailer.recipient ~= "" and AutoMailer.items ~= "" then
 
@@ -122,7 +95,7 @@ function A:SendMail()
                 local subject = A:GetMailSubject()
                 SendMail(recipient, subject, "")
                 A.sentMail = true
-                return
+                coroutine.yield()
               end -- 12 ITEMS IN MAIL
             end -- IF SENDITEM
           end -- NOT SOULBOUND
@@ -136,10 +109,53 @@ function A:SendMail()
     end
     if A.sentMail then
       A:Print("Successfully sent mail to "..recipient)
+      A.sendingMail = false
     end
   end
-  A.sendingMail = false
 end
+local sendMailCoroutine = coroutine.create(AutoMailerSendMail)
+
+
+--[[
+    -- MAILING EVENTS --
+]]
+function E:MAIL_SHOW()
+  if IsShiftKeyDown() then
+    A.sentMail = false
+    A.sendingMail = true
+    C_Timer.After(0.1, function()
+      if not IsBagOpen(0) then
+        ToggleAllBags()
+      end
+    end)
+  end
+
+  if A.sendingMail then
+    local resume = coroutine.resume(sendMailCoroutine)
+    if resume == false then
+      sendMailCoroutine = coroutine.create(AutoMailerSendMail)
+      coroutine.resume(sendMailCoroutine)
+    end
+  end
+end
+
+function E:MAIL_SEND_SUCCESS()
+  if A.sendingMail then
+    if A:SomethingLocked() then
+      C_Timer.After(0.1, function()
+        E:MAIL_SEND_SUCCESS()
+      end)
+      return
+    end
+    local resume = coroutine.resume(sendMailCoroutine)
+    if resume == false then
+      sendMailCoroutine = coroutine.create(AutoMailerSendMail)
+      coroutine.resume(sendMailCoroutine)
+    end
+  end
+end
+
+
 
 function A:GetMailSubject()
   local name, _, _, count = GetSendMailItem(1)
@@ -158,79 +174,22 @@ function A:ContainerItemIsSoulbound(bag, slot)
   return C_Item.IsBound(ItemLocation:CreateFromBagAndSlot(bag, slot))
 end
 
---[[
-    ---- SLASH COMMANDS ----
-]]
-
-A.commands = {
-  ["recipient"] = {
-    ["description"] = "Set AutoMailer recipient.",
-    action = function(recipient)
-      if recipient then
-        AutoMailer.recipient = recipient
-        A:Print("Recipient set to '"..recipient.."'")
-      else
-        A:Print("Current recipient: ".. recipient)
-      end
-    end
-  },
-  ["add"] = {
-    ["description"] = "Add item to AutoMailer list (only name, no itemlinks).",
-    action = function(itemName)
-      AutoMailer.items = AutoMailer.items .. itemName .. "\n"
-      A:Print("Added "..itemName)
-    end
-  },
-  ["remove"] = {
-    ["description"] = "Remove item from AutoMailer list.",
-    action = function(itemName)
-      if itemName then
-        AutoMailer.items = string.gsub(AutoMailer.items, itemName.."\n", "")
-        A:Print("Removed "..itemName)
-      end
-    end
-  },
-  ["reset"] = {
-    ["description"] = "Reset all settings.",
-    action = function()
-      wipe(AutoMailer)
-      AutoMailer.items = ""
-      AutoMailer.recipient = ""
-      A:Print("All settings reset.")
-    end
-  },
-  ["list"] = {
-    ["description"] = "List items in AutoMailer.",
-    action = function()
-      if AutoMailer.items ~= "" and AutoMailer.items then
-        A:Print("Item list")
-        print(AutoMailer.items)
-      else
-        A:Print("No items in AutoMailer list.")
-      end
-    end
-  }
-}
-
 function A:SlashCommand(args)
   InterfaceOptionsFrame_OpenToCategory(A.optionsPanel)
   InterfaceOptionsFrame_OpenToCategory(A.optionsPanel)
+end
 
-  --[[
 
-    local command, rest = strsplit(" ", args, 2) -- Split args
-    command = command:lower() -- command to lowercase for easier detection
-  
-    if A.commands[command] then
-      A.commands[command].action(rest)
-  
-    else
-      print("AutoMailer commands")
-      for command, t in pairs(A.commands) do
-        print(A.slashPrefix .. command .. " - " .. t.description)
+function A:SomethingLocked()
+  for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
+    for slot = 1, GetContainerNumSlots(bag) do
+      local _, _, locked = GetContainerItemInfo(bag, slot)
+      if locked then
+        return true
       end
     end
-  ]]
+  end
+  return false
 end
 
 
