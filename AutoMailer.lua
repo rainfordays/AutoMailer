@@ -1,5 +1,6 @@
 local _, A = ...
 
+
 function A:Print(...)
   DEFAULT_CHAT_FRAME:AddMessage(A.addonName .. "- " .. tostringall(...))
 end
@@ -36,6 +37,11 @@ function E:ADDON_LOADED(name)
 
   if AutoMailer.loginMessage == nil then AutoMailer.loginMessage = true end
 
+  
+  A.itemsSent = {}
+  A[AutoMailer.recipient] = {}
+  A[AutoMailer.boeRecipient] = {}
+
   SLASH_AUTOMAILER1= "/automailer"
   SLASH_AUTOMAILER2= "/am"
   SlashCmdList.AUTOMAILER = function(msg)
@@ -69,12 +75,10 @@ local function AutoMailerSendMail()
     for bag = 0, NUM_BAG_SLOTS do
       for slot = 1, GetContainerNumSlots(bag) do
         local locked = select(3, GetContainerItemInfo(bag, slot))
-        local itemID = select(10, GetContainerItemInfo(bag, slot))
-        if itemID and not locked then
+        local itemLink = select(7, GetContainerItemInfo(bag, slot))
+        if itemLink and not locked then
           if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
-            local itemName = select(1, GetItemInfo(itemID))
-            local bindType = select(14, GetItemInfo(itemID))
-            local itemMinLevel = select(5, GetItemInfo(itemID))
+            local itemName, _, _, _, itemMinLevel, _, _, _, _, _, _, _, _, bindType = GetItemInfo(itemLink)
             local sendItem = false
 
             if A:ItemInAutomailList(itemName) then -- item is in text list
@@ -92,6 +96,11 @@ local function AutoMailerSendMail()
             if sendItem then -- we should send this item
               SetSendMailShowing(true)
               UseContainerItem(bag, slot)
+              if A.itemsSent[AutoMailer.recipient][itemName] then
+                A.itemsSent[AutoMailer.recipient][itemName] = A.itemsSent[AutoMailer.recipient][itemName]+1
+              else
+                A.itemsSent[AutoMailer.recipient][itemName] = 1
+              end
               itemsInMail = itemsInMail + 1
 
               if itemsInMail == 12 then -- If there are max attached items then send the mail before proceeding
@@ -111,12 +120,6 @@ local function AutoMailerSendMail()
       SendMail(AutoMailer.recipient, A.GetMailSubject(), "")
       A.sentMail = true
     end
-
-    if A.sentMail then
-      A:Print("Successfully sent mail to "..AutoMailer.recipient)
-      A.sentMail = false
-      return
-    end
   end -- Send regular
 
 
@@ -128,12 +131,10 @@ local function AutoMailerSendMail()
     for bag = 0, NUM_BAG_SLOTS do
       for slot = 1, GetContainerNumSlots(bag) do
         local locked = select(3, GetContainerItemInfo(bag, slot))
-        local itemID = select(10, GetContainerItemInfo(bag, slot))
-        if itemID and not locked then
+        local itemLink = select(7, GetContainerItemInfo(bag, slot))
+        if itemLink and not locked then
           if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
-            local bindType = select(14, GetItemInfo(itemID))
-            local itemMinLevel = select(5, GetItemInfo(itemID))
-            local rarity = select(3, GetItemInfo(itemID))
+            local itemName, _, rarity, _, itemMinLevel, _, _, _, _, _, _, _, _, bindType = GetItemInfo(itemLink)
             local sendItem = false
 
             if A:AutomailBoe(bindType) and rarity <= AutoMailer.boeRarityLimit then -- Mail BoEs and item is BoE
@@ -149,6 +150,11 @@ local function AutoMailerSendMail()
             if sendItem then -- we should send this item
               SetSendMailShowing(true)
               UseContainerItem(bag, slot)
+              if A.itemsSent[AutoMailer.boeRecipient][itemName] then
+                A.itemsSent[AutoMailer.boeRecipient][itemName] = A.itemsSent[AutoMailer.boeRecipient][itemName]+1
+              else
+                A.itemsSent[AutoMailer.boeRecipient][itemName] = 1
+              end
               itemsInMail = itemsInMail + 1
 
               if itemsInMail == 12 then -- If there are max attached items then send the mail before proceeding
@@ -168,15 +174,20 @@ local function AutoMailerSendMail()
       SendMail(AutoMailer.boeRecipient, A.GetMailSubject(), "")
       A.sentBoes = true
     end
-
-    if A.sentBoes then
-      A:Print("Successfully sent BoEs to "..AutoMailer.boeRecipient)
-      A.sentBoes = false
-    end
   end
+  
+  if A.sentMail then
+    A:Print("Successfully sent mail to "..AutoMailer.recipient)
+    A.sentMail = false
+    return
+  end
+  if A.sentBoes then
+    A:Print("Successfully sent BoEs to "..AutoMailer.boeRecipient)
+    A.sentBoes = false
+  end
+
   A.sendingMail = false
 end
-local sendMailCoroutine = coroutine.create(AutoMailerSendMail)
 
 
 --[[
@@ -186,11 +197,6 @@ function E:MAIL_SHOW()
   if IsShiftKeyDown() then
     A.sendingMail = true
     AutoMailerSendMail()
-    --[[
-      sendMailCoroutine = coroutine.create(AutoMailerSendMail)
-      coroutine.resume(sendMailCoroutine)
-
-    ]]
   end
 end
 
@@ -224,22 +230,43 @@ function A:ContainerItemIsSoulbound(bag, slot)
 end
 
 function A:SlashCommand(args)
-  InterfaceOptionsFrame_OpenToCategory(A.optionsPanel)
-  InterfaceOptionsFrame_OpenToCategory(A.optionsPanel)
-end
+  local command = strsplit(" ", args, 1)
+  command = command:lower()
 
-
-function A:SomethingLocked()
-  for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
-    for slot = 1, GetContainerNumSlots(bag) do
-      local locked = select(3, GetContainerItemInfo(bag, slot))
-      if locked then
-        return true
+  if command == "list" then
+    local sentMessage = false
+    for recipient, items in pairs(A.itemsSent) do
+      if #A.itemsSent[recipient] > 0 then
+        A:Print("Items sent to ".. recipient)
+        local string = ""
+        for itemName, count in pairs(items) do
+          if #string > 0 then
+            if count > 1 then
+              string = string .. ", "..itemName.."x"..count
+            else
+              string = string .. ", "..itemName
+            end
+          else
+            if count > 1 then
+              string = itemName.."x"..count
+            else
+              string = itemName
+            end
+          end
+        end
+        print(string)
+        sentMessage = true
       end
     end
+    if not sentMessage then
+      A:Print("Nothing sent this session.")
+    end
+  else
+    InterfaceOptionsFrame_OpenToCategory(A.optionsPanel)
+    InterfaceOptionsFrame_OpenToCategory(A.optionsPanel)
   end
-  return false
 end
+
 
 
 function A:Count(T)
