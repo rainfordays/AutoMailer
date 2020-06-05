@@ -17,24 +17,9 @@ function A:CreateOptionsMenu()
   recipientHeader:SetPoint("TOPLEFT", text, "BOTTOMLEFT", 0, -15)
 
 
-  local loginMessage = CreateFrame("CheckButton", nil, optionsPanel, "UICheckButtonTemplate")
-  loginMessage:SetSize(25,25)
-  loginMessage:SetPoint("BOTTOMLEFT", optionsPanel, "BOTTOMLEFT", 10, 3)
-  loginMessage:SetScript("OnClick", function(self, button)
-    AutoMailer.loginMessage = self:GetChecked()
-  end)
-  loginMessage:SetChecked(AutoMailer.loginMessage)
-  optionsPanel.loginMessage = loginMessage
-
-  local loginMessageText = loginMessage:CreateFontString(nil, "OVERLAY")
-  loginMessageText:SetFontObject("GameFontNormal")
-  loginMessageText:SetPoint("LEFT", loginMessage, "RIGHT", 3, 0)
-  loginMessageText:SetText("Display login message")
-  optionsPanel.loginMessageText = loginMessageText
-
 
   local recipientBox = CreateFrame("EditBox", "recipientBox", optionsPanel, "InputBoxTemplate")
-  recipientBox:SetPoint("TOPLEFT", recipientHeader, "BOTTOMLEFT", 0, -5)
+  recipientBox:SetPoint("TOPLEFT", recipientHeader, "BOTTOMLEFT", 5, 0)
   recipientBox:SetSize(200, 30)
   recipientBox:SetFontObject("ChatFontNormal")
   recipientBox:SetMultiLine(false)
@@ -72,6 +57,9 @@ function A:CreateOptionsMenu()
   local itemsFrame = CreateFrame("ScrollFrame", nil, optionsPanel, "UIPanelScrollFrameTemplate")
   itemsFrame:SetPoint("TOPLEFT", itemsHeader, "BOTTOMLEFT", 0, -5)
   itemsFrame:SetSize(275, 300)
+  itemsFrame:SetScript("OnMouseUp", function(self)
+    A.optionsPanel.items:SetFocus()
+  end)
 
   optionsPanel.itemsFrame = itemsFrame
 
@@ -114,7 +102,7 @@ function A:CreateOptionsMenu()
   BOETEXT:SetText("Automatically send BoEs")
 
   local BOELEVELLIMIT = CreateFrame("CheckButton", "AMBOELVLLIMITCB", optionsPanel, "ChatConfigCheckButtonTemplate")
-  BOELEVELLIMIT:SetChecked(AutoMailer.LimitBoeLevel or true)
+  BOELEVELLIMIT:SetChecked(AutoMailer.LimitBoeLevel or false)
   BOELEVELLIMIT:SetPoint("TOPLEFT", BOECB, "BOTTOMLEFT", 5, 0)
   BOELEVELLIMIT:SetScript("OnClick", function(self)
     AutoMailer.LimitBoeLevel = self:GetChecked()
@@ -127,7 +115,101 @@ function A:CreateOptionsMenu()
   BOELIMITTEXT:SetText("Only BoEs with required level lower than yours")
 
 
+  local boeRecipientHeader = optionsPanel:CreateFontString(nil, "OVERLAY")
+  boeRecipientHeader:SetFontObject("GameFontNormal")
+  boeRecipientHeader:SetText("BoE Recipient")
+  boeRecipientHeader:SetPoint("TOPLEFT", BOELIMITTEXT, "BOTTOMLEFT", -30, -15)
 
+
+
+  local boeRecipientBox = CreateFrame("EditBox", "boeRecipientBox", optionsPanel, "InputBoxTemplate")
+  boeRecipientBox:SetPoint("TOPLEFT", boeRecipientHeader, "BOTTOMLEFT", 5, 0)
+  boeRecipientBox:SetSize(200, 30)
+  boeRecipientBox:SetFontObject("ChatFontNormal")
+  boeRecipientBox:SetMultiLine(false)
+  boeRecipientBox:SetText(AutoMailer.boeRecipient)
+  boeRecipientBox:SetCursorPosition(0)
+  boeRecipientBox:SetAutoFocus(false)
+  boeRecipientBox:SetScript("OnEscapePressed", function(self) self:ClearFocus() end)
+  boeRecipientBox:SetScript("OnKeyUp", function(self)
+    AutoMailer.boeRecipient = self:GetText()
+  end)
+  boeRecipientBox:SetScript("OnEnterPressed", function(self)
+    AutoMailer.boeRecipient = self:GetText()
+    self:ClearFocus()
+  end)
+
+
+
+
+  local BOELIMITRARITYCB = CreateFrame("CheckButton", "AMBOELIMITRARITYCB", optionsPanel, "ChatConfigCheckButtonTemplate")
+  BOELIMITRARITYCB:SetChecked(AutoMailer.limitBoeRarity or false)
+  BOELIMITRARITYCB:SetPoint("TOPLEFT", boeRecipientBox, "BOTTOMLEFT", 0, 0)
+  BOELIMITRARITYCB:SetScript("OnClick", function(self)
+    AutoMailer.limitBoeRarity = self:GetChecked()
+  end)
+  AutoMailer.limitBoeRarity = BOELIMITRARITYCB:GetChecked() -- INIT OPTION TO SAVED VARIABLES
+
+  local BOELIMITRARITYTEXT = BOELIMITRARITYCB:CreateFontString(nil, "OVERLAY")
+  BOELIMITRARITYTEXT:SetPoint("LEFT", BOELIMITRARITYCB, "RIGHT", 5, 0)
+  BOELIMITRARITYTEXT:SetFontObject("GameFontNormal")
+  BOELIMITRARITYTEXT:SetText("Limit rarity")
+
+
+  
+  local rarities = {"Poor", "Common", "Uncommon", "Rare", "Epic"}
+  local RARITYLIMIT = CreateFrame("Frame", "AUTOMAILERRARITYLIMIT", optionsPanel, "UIDropDownMenuTemplate")
+  RARITYLIMIT:SetPoint("TOPLEFT", BOELIMITRARITYCB, "BOTTOMLEFT", -24, -5)
+  RARITYLIMIT.displayMode = "MENU"
+  RARITYLIMIT.info = {}
+  RARITYLIMIT.initialize = function(self, level)
+    if not level then return end
+
+    for i, rarity in pairs({"Uncommon", "Rare", "Epic"}) do
+      local info = UIDropDownMenu_CreateInfo()
+
+      info.text = rarity
+      info.arg1 = rarity
+      info.func = A.SetRarityLimit
+      info.checked = rarity == rarities[AutoMailer.boeRarityLimit+1]
+
+      UIDropDownMenu_AddButton(info, 1)
+    end
+  end
+  optionsPanel.rarityLimit = RARITYLIMIT
+  UIDropDownMenu_SetText(optionsPanel.rarityLimit, rarities[AutoMailer.boeRarityLimit])
+
+
+
+
+
+  
+  local loginMessage = CreateFrame("CheckButton", nil, optionsPanel, "UICheckButtonTemplate")
+  loginMessage:SetSize(25,25)
+  loginMessage:SetPoint("BOTTOMLEFT", optionsPanel, "BOTTOMLEFT", 10, 3)
+  loginMessage:SetScript("OnClick", function(self, button)
+    AutoMailer.loginMessage = self:GetChecked()
+  end)
+  loginMessage:SetChecked(AutoMailer.loginMessage)
+  optionsPanel.loginMessage = loginMessage
+
+  local loginMessageText = loginMessage:CreateFontString(nil, "OVERLAY")
+  loginMessageText:SetFontObject("GameFontNormal")
+  loginMessageText:SetPoint("LEFT", loginMessage, "RIGHT", 3, 0)
+  loginMessageText:SetText("Display login message")
+  optionsPanel.loginMessageText = loginMessageText
 
   A.optionsPanel = optionsPanel
+end
+
+
+function A.SetRarityLimit(self, arg1, arg2, checked)
+  local quals = {
+    ["Uncommon"] = LE_ITEM_QUALITY_UNCOMMON,
+    ["Rare"] = LE_ITEM_QUALITY_RARE,
+    ["Epic"] = LE_ITEM_QUALITY_EPIC
+  }
+
+  AutoMailer.boeRarityLimit = quals[arg1]
+  UIDropDownMenu_SetText(A.optionsPanel.rarityLimit, arg1)
 end

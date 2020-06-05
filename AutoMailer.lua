@@ -15,7 +15,8 @@ A.sentMail = false
 local E = CreateFrame("Frame")
 E:RegisterEvent("ADDON_LOADED")
 E:RegisterEvent("MAIL_SHOW")
-E:RegisterEvent("MAIL_SEND_SUCCESS")
+E:RegisterEvent("MAIL_CLOSED")
+E:RegisterEvent("BAG_UPDATE_DELAYED")
 E:RegisterEvent("PLAYER_ENTERING_WORLD")
 E:SetScript("OnEvent", function(self, event, ...)
   return self[event] and self[event](self, ...)
@@ -30,6 +31,8 @@ function E:ADDON_LOADED(name)
   AutoMailer = AutoMailer or {}
   AutoMailer.items = AutoMailer.items or ""
   AutoMailer.recipient = AutoMailer.recipient or ""
+  AutoMailer.boeRecipient = AutoMailer.boeRecipient or ""
+  AutoMailer.boeRarityLimit = AutoMailer.boeRarityLimit or 4
 
   if AutoMailer.loginMessage == nil then AutoMailer.loginMessage = true end
 
@@ -58,16 +61,16 @@ end
 
 local function AutoMailerSendMail()
   if not A.sendingMail then return end
-  if AutoMailer.recipient ~= "" and AutoMailer.items ~= "" then
 
+  if #AutoMailer.recipient ~= 0 and #AutoMailer.items ~= 0 then
+    A.sentMail = false
     local itemsInMail = 0
-    local recipient = AutoMailer.recipient
-    local sentMail = false
 
     for bag = 0, NUM_BAG_SLOTS do
       for slot = 1, GetContainerNumSlots(bag) do
+        local locked = select(3, GetContainerItemInfo(bag, slot))
         local itemID = select(10, GetContainerItemInfo(bag, slot))
-        if itemID then
+        if itemID and not locked then
           if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
             local itemName = select(1, GetItemInfo(itemID))
             local bindType = select(14, GetItemInfo(itemID))
@@ -76,7 +79,7 @@ local function AutoMailerSendMail()
 
             if A:ItemInAutomailList(itemName) then -- item is in text list
               sendItem = true
-            elseif A:AutomailBoe(bindType) then -- Mail BoEs and item is BoE
+            elseif A:AutomailBoe(bindType) and #AutoMailer.boeRecipient == 0 then -- Mail BoEs and item is BoE
               if AutoMailer.LimitBoeLevel then -- Limit BoE required level to be below player level
                 if itemMinLevel < UnitLevel("PLAYER") then -- Check required level
                   sendItem = true
@@ -92,10 +95,11 @@ local function AutoMailerSendMail()
               itemsInMail = itemsInMail + 1
 
               if itemsInMail == 12 then -- If there are max attached items then send the mail before proceeding
-                local subject = A:GetMailSubject()
-                SendMail(recipient, subject, "")
+                SetSendMailShowing(true)
+                SendMail(AutoMailer.recipient, A.GetMailSubject(), "")
                 A.sentMail = true
-                coroutine.yield()
+                return
+                --coroutine.yield()
               end -- 12 ITEMS IN MAIL
             end -- IF SENDITEM
           end -- NOT SOULBOUND
@@ -103,15 +107,74 @@ local function AutoMailerSendMail()
       end -- SLOTS
     end -- BAGS
     if GetSendMailItem(1) then
-      local subject = A:GetMailSubject()
-      SendMail(recipient, subject, "")
+      SetSendMailShowing(true)
+      SendMail(AutoMailer.recipient, A.GetMailSubject(), "")
       A.sentMail = true
     end
+
     if A.sentMail then
-      A:Print("Successfully sent mail to "..recipient)
-      A.sendingMail = false
+      A:Print("Successfully sent mail to "..AutoMailer.recipient)
+      A.sentMail = false
+      return
+    end
+  end -- Send regular
+
+
+  -- BOES TO SEPARATE CHARACTER
+  if #AutoMailer.boeRecipient ~= 0 then
+    A.sentBoes = false
+    local itemsInMail = 0
+
+    for bag = 0, NUM_BAG_SLOTS do
+      for slot = 1, GetContainerNumSlots(bag) do
+        local locked = select(3, GetContainerItemInfo(bag, slot))
+        local itemID = select(10, GetContainerItemInfo(bag, slot))
+        if itemID and not locked then
+          if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
+            local bindType = select(14, GetItemInfo(itemID))
+            local itemMinLevel = select(5, GetItemInfo(itemID))
+            local rarity = select(3, GetItemInfo(itemID))
+            local sendItem = false
+
+            if A:AutomailBoe(bindType) and rarity <= AutoMailer.boeRarityLimit then -- Mail BoEs and item is BoE
+              if AutoMailer.LimitBoeLevel then -- Limit BoE required level to be below player level
+                if itemMinLevel < UnitLevel("PLAYER") then -- Check required level
+                  sendItem = true
+                end
+              else -- Not limiting BoE levels so send all BoEs
+                sendItem = true
+              end
+            end
+
+            if sendItem then -- we should send this item
+              SetSendMailShowing(true)
+              UseContainerItem(bag, slot)
+              itemsInMail = itemsInMail + 1
+
+              if itemsInMail == 12 then -- If there are max attached items then send the mail before proceeding
+                SetSendMailShowing(true)
+                SendMail(AutoMailer.boeRecipient, A.GetMailSubject(), "")
+                A.sentBoes = true
+                return
+                --coroutine.yield()
+              end -- 12 ITEMS IN MAIL
+            end -- IF SENDITEM
+          end -- NOT SOULBOUND
+        end -- ITEMLINK
+      end -- SLOTS
+    end -- BAGS
+    if GetSendMailItem(1) then
+      SetSendMailShowing(true)
+      SendMail(AutoMailer.boeRecipient, A.GetMailSubject(), "")
+      A.sentBoes = true
+    end
+
+    if A.sentBoes then
+      A:Print("Successfully sent BoEs to "..AutoMailer.boeRecipient)
+      A.sentBoes = false
     end
   end
+  A.sendingMail = false
 end
 local sendMailCoroutine = coroutine.create(AutoMailerSendMail)
 
@@ -121,40 +184,26 @@ local sendMailCoroutine = coroutine.create(AutoMailerSendMail)
 ]]
 function E:MAIL_SHOW()
   if IsShiftKeyDown() then
-    A.sentMail = false
     A.sendingMail = true
-    C_Timer.After(0.1, function()
-      if not IsBagOpen(0) then
-        ToggleAllBags()
-      end
-    end)
-  end
-
-  if A.sendingMail then
-    local resume = coroutine.resume(sendMailCoroutine)
-    if resume == false then
+    AutoMailerSendMail()
+    --[[
       sendMailCoroutine = coroutine.create(AutoMailerSendMail)
       coroutine.resume(sendMailCoroutine)
-    end
+
+    ]]
   end
 end
 
-function E:MAIL_SEND_SUCCESS()
-  if A.sendingMail then
-    if A:SomethingLocked() then
-      C_Timer.After(0.1, function()
-        E:MAIL_SEND_SUCCESS()
-      end)
-      return
-    end
-    local resume = coroutine.resume(sendMailCoroutine)
-    if resume == false then
-      sendMailCoroutine = coroutine.create(AutoMailerSendMail)
-      coroutine.resume(sendMailCoroutine)
-    end
-  end
+function E:MAIL_CLOSED()
+  A.sendingMail = false
 end
 
+
+function E:BAG_UPDATE_DELAYED()
+  if A.sendingMail then
+    AutoMailerSendMail()
+  end
+end
 
 
 function A:GetMailSubject()
@@ -183,7 +232,7 @@ end
 function A:SomethingLocked()
   for bag = BACKPACK_CONTAINER, NUM_BAG_SLOTS do
     for slot = 1, GetContainerNumSlots(bag) do
-      local _, _, locked = GetContainerItemInfo(bag, slot)
+      local locked = select(3, GetContainerItemInfo(bag, slot))
       if locked then
         return true
       end
