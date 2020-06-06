@@ -2,7 +2,7 @@
 ## Title: AutoMailer
 ## Author: RainForDays
 ## Notes: Automatically Mail Items
-## Version: 1.2
+## Version: 2.0
 ## DefaultState: enabled
 ## SavedVariablesPerCharacter: AutoMailer
 
