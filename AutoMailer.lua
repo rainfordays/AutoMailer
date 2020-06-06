@@ -39,8 +39,8 @@ function E:ADDON_LOADED(name)
 
   
   A.itemsSent = {}
-  A[AutoMailer.recipient] = {}
-  A[AutoMailer.boeRecipient] = {}
+  A.itemsSent[AutoMailer.recipient] = {}
+  A.itemsSent[AutoMailer.boeRecipient] = {}
 
   SLASH_AUTOMAILER1= "/automailer"
   SLASH_AUTOMAILER2= "/am"
@@ -74,8 +74,7 @@ local function AutoMailerSendMail()
 
     for bag = 0, NUM_BAG_SLOTS do
       for slot = 1, GetContainerNumSlots(bag) do
-        local locked = select(3, GetContainerItemInfo(bag, slot))
-        local itemLink = select(7, GetContainerItemInfo(bag, slot))
+        local _, itemCount, locked, _, _, _, itemLink = GetContainerItemInfo(bag, slot)
         if itemLink and not locked then
           if not A:ContainerItemIsSoulbound(bag, slot) then -- Item is not soulbound
             local itemName, _, _, _, itemMinLevel, _, _, _, _, _, _, _, _, bindType = GetItemInfo(itemLink)
@@ -97,9 +96,9 @@ local function AutoMailerSendMail()
               SetSendMailShowing(true)
               UseContainerItem(bag, slot)
               if A.itemsSent[AutoMailer.recipient][itemName] then
-                A.itemsSent[AutoMailer.recipient][itemName] = A.itemsSent[AutoMailer.recipient][itemName]+1
+                A.itemsSent[AutoMailer.recipient][itemName] = A.itemsSent[AutoMailer.recipient][itemName]+itemCount
               else
-                A.itemsSent[AutoMailer.recipient][itemName] = 1
+                A.itemsSent[AutoMailer.recipient][itemName] = itemCount
               end
               itemsInMail = itemsInMail + 1
 
@@ -236,24 +235,17 @@ function A:SlashCommand(args)
   if command == "list" then
     local sentMessage = false
     for recipient, items in pairs(A.itemsSent) do
-      if #A.itemsSent[recipient] > 0 then
-        A:Print("Items sent to ".. recipient)
-        local string = ""
-        for itemName, count in pairs(items) do
-          if #string > 0 then
-            if count > 1 then
-              string = string .. ", "..itemName.."x"..count
-            else
-              string = string .. ", "..itemName
-            end
-          else
-            if count > 1 then
-              string = itemName.."x"..count
-            else
-              string = itemName
-            end
-          end
+      local string = ""
+      for itemName, count in pairs(items) do
+        if #string > 0 then
+          string = string .. ", "..itemName.."x"..count
+        else
+          string = itemName.."x"..count
         end
+      end
+
+      if #string > 0 then
+        A:Print("Items sent to ".. recipient)
         print(string)
         sentMessage = true
       end
