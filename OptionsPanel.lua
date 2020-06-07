@@ -157,7 +157,7 @@ function A:CreateOptionsMenu()
 
 
   
-  local rarities = {"Poor", "Common", "Uncommon", "Rare", "Epic"}
+  local rarities = {ITEM_QUALITY0_DESC, ITEM_QUALITY1_DESC, ITEM_QUALITY2_DESC, ITEM_QUALITY3_DESC, ITEM_QUALITY4_DESC}
   local RARITYLIMIT = CreateFrame("Frame", "AUTOMAILERRARITYLIMIT", optionsPanel, "UIDropDownMenuTemplate")
   RARITYLIMIT:SetPoint("TOPLEFT", BOELIMITRARITYCB, "BOTTOMLEFT", -24, -5)
   RARITYLIMIT.displayMode = "MENU"
@@ -165,19 +165,21 @@ function A:CreateOptionsMenu()
   RARITYLIMIT.initialize = function(self, level)
     if not level then return end
 
-    for i, rarity in pairs({"Uncommon", "Rare", "Epic"}) do
-      local info = UIDropDownMenu_CreateInfo()
+    for i, rarity in pairs(rarities) do
+      if i >= 3 then -- 3rd entry is uncommon
+        local info = UIDropDownMenu_CreateInfo()
 
-      info.text = rarity
-      info.arg1 = rarity
-      info.func = A.SetRarityLimit
-      info.checked = rarity == rarities[AutoMailer.boeRarityLimit+1]
+        info.text = rarity
+        info.arg1 = rarity
+        info.func = A.SetRarityLimit
+        info.checked = rarity == _G["ITEM_QUALITY" .. AutoMailer.boeRarityLimit .. "_DESC"]
 
-      UIDropDownMenu_AddButton(info, 1)
+        UIDropDownMenu_AddButton(info, 1)
+      end
     end
   end
   optionsPanel.rarityLimit = RARITYLIMIT
-  UIDropDownMenu_SetText(optionsPanel.rarityLimit, rarities[AutoMailer.boeRarityLimit])
+  UIDropDownMenu_SetText(optionsPanel.rarityLimit, _G["ITEM_QUALITY" .. AutoMailer.boeRarityLimit .. "_DESC"])
 
 
 
@@ -204,11 +206,10 @@ end
 
 
 function A.SetRarityLimit(self, arg1, arg2, checked)
-  local quals = {
-    ["Uncommon"] = LE_ITEM_QUALITY_UNCOMMON,
-    ["Rare"] = LE_ITEM_QUALITY_RARE,
-    ["Epic"] = LE_ITEM_QUALITY_EPIC
-  }
+  local quals = {}
+  quals[ITEM_QUALITY2_DESC] = LE_ITEM_QUALITY_UNCOMMON
+  quals[ITEM_QUALITY3_DESC] = LE_ITEM_QUALITY_RARE
+  quals[ITEM_QUALITY4_DESC] = LE_ITEM_QUALITY_EPIC
 
   AutoMailer.boeRarityLimit = quals[arg1]
   UIDropDownMenu_SetText(A.optionsPanel.rarityLimit, arg1)
